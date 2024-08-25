@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>PID Control</title>
+    </head>
+    <body>
+        <h1>Potentiometer Values</h1>
+
+        <p><strong>Kp:</strong> <span id="kp-value">0.0</span></p>
+        <p><strong>Ki:</strong> <span id="ki-value">0.0</span></p>
+        <p><strong>Kd:</strong> <span id="kd-value">0.0</span></p>
+
+        <script>
+            const socket = new WebSocket("ws://127.0.0.1:8000/ws");
+
+            socket.onmessage = function (event) {
+                const data = JSON.parse(event.data);
+                document.getElementById("kp-value").textContent = data.kp;
+                document.getElementById("ki-value").textContent = data.ki;
+                document.getElementById("kd-value").textContent = data.kd;
+            };
+
+            socket.onopen = function () {
+                console.log("WebSocket connection established");
+            };
+
+            socket.onclose = function () {
+                console.log("WebSocket connection closed");
+            };
+
+            socket.onerror = function (error) {
+                console.error("WebSocket error:", error);
+            };
+        </script>
+    </body>
+</html>
