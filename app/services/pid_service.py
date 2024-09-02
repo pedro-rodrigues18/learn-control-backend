@@ -13,7 +13,14 @@ class BaseController:
         self.digital = digital
 
     def step_response(self, controller_tf):
-        """Plotting the step response of the controller"""
+        """Plotando a resposta ao degrau do controlador"""
+        # Verificar se os sistemas têm a mesma base de tempo (dt)
+        if self.digital and (self.Tf.dt != controller_tf.dt):
+            raise ValueError(
+                "As funções de transferência têm bases de tempo incompatíveis"
+            )
+
+        # Criar o sistema de malha fechada
         system_closed_loop = ctrl.feedback(self.Tf * controller_tf, self.feedback)
         time, response = ctrl.step_response(system_closed_loop)
 
@@ -39,6 +46,11 @@ class BaseController:
 
     def root_locus(self, controller_tf):
         """Calcula os dados do lugar das raízes (LGR)"""
+        if self.digital and (self.Tf.dt != controller_tf.dt):
+            raise ValueError(
+                "As funções de transferência têm bases de tempo incompatíveis"
+            )
+
         system_open_loop = self.Tf * controller_tf
 
         plt.figure()
@@ -53,6 +65,11 @@ class BaseController:
 
     def bode_plot(self, controller_tf):
         """Calcula os dados do gráfico de Bode"""
+        if self.digital and (self.Tf.dt != controller_tf.dt):
+            raise ValueError(
+                "As funções de transferência têm bases de tempo incompatíveis"
+            )
+
         system_open_loop = self.Tf * controller_tf
 
         plt.figure()
@@ -87,7 +104,7 @@ class PID(BaseController):
                 [self.Kd, self.Kp, self.Ki], [1, 0, 0], self.Tf.dt
             )
         else:
-            return ctrl.TransferFunction([self.Kp, self.Ki, self.Kd], [0, 1, 0])
+            return ctrl.TransferFunction([self.Kd, self.Kp, self.Ki], [1, 0, 0])
 
     def step_response(self):
         return super().step_response(self.get_controller_tf())
@@ -116,7 +133,7 @@ class PI(BaseController):
         if self.digital:
             return ctrl.TransferFunction([self.Ki, self.Kp], [1, 0], self.Tf.dt)
         else:
-            return ctrl.TransferFunction([self.Kp, self.Ki], [1, 0])
+            return ctrl.TransferFunction([self.Ki, self.Kp], [1, 0])
 
     def step_response(self):
         return super().step_response(self.get_controller_tf())
@@ -145,7 +162,7 @@ class PD(BaseController):
         if self.digital:
             return ctrl.TransferFunction([self.Kd, self.Kp], [1], self.Tf.dt)
         else:
-            return ctrl.TransferFunction([self.Kd, self.Kp], [0, 1])
+            return ctrl.TransferFunction([self.Kd, self.Kp], [1])
 
     def step_response(self):
         return super().step_response(self.get_controller_tf())
@@ -192,18 +209,18 @@ class GpNoControlAction(BaseController):
 
     def step_response(self):
         return super().step_response(
-            ctrl.TransferFunction([1], [1])
-        )  # Unity feedback for system without control
+            ctrl.TransferFunction([1], [1], dt=self.Tf.dt if self.digital else None)
+        )
 
     def root_locus(self):
         return super().root_locus(
-            ctrl.TransferFunction([1], [1])
-        )  # Unity feedback for system without control
+            ctrl.TransferFunction([1], [1], dt=self.Tf.dt if self.digital else None)
+        )
 
     def bode_plot(self):
         return super().bode_plot(
-            ctrl.TransferFunction([1], [1])
-        )  # Unity feedback for system without control
+            ctrl.TransferFunction([1], [1], dt=self.Tf.dt if self.digital else None)
+        )
 
 
 def buildTF(numerator, denominator):
