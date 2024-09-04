@@ -1,12 +1,13 @@
 from fastapi import FastAPI, WebSocket
 from services.pid_service import PID, PI, PD, P, GpNoControlAction, buildTF
-from schemas.pid_values import PIDValues
+from schemas.values_scheme import Values
 from fastapi.middleware.cors import CORSMiddleware
 from control.matlab import c2d
 
 app = FastAPI()
 
-current_values = {"kp": 0.0, "ki": 0.0, "kd": 0.0}
+control = ""
+current_values = {}
 connected_clients = []
 
 app.add_middleware(
@@ -19,15 +20,29 @@ app.add_middleware(
 
 
 @app.post("/send_values")
-async def control_system(values: PIDValues):
-    global current_values
+async def control_system(values: Values):
 
-    current_values = {"kp": values.kp, "ki": values.ki, "kd": values.kd}
+    for key, value in values.dict().items():
+        if value is not None:
+            current_values[key] = value
 
     for client in connected_clients:
         await client.send_json(current_values)
 
-    return {"success": True, "message": "Data sent successfully"}
+    return {
+        "success": True,
+        "message": "Data sent successfully",
+        "data": current_values,
+    }
+
+
+@app.get("/get_values")
+async def get_values():
+    return {
+        "success": True,
+        "message": "Success",
+        "data": current_values,
+    }
 
 
 def get_controller(control_type, transfer_function, digital=False):
@@ -89,6 +104,8 @@ async def continuo_endpoint(control_type: str, tau: float):
     root_locus = controller.root_locus()
     bode_plot = controller.bode_plot()
 
+    current_values["plot"] = False
+
     return {
         "control_type": control_type,
         "step_response": step_response,
@@ -101,7 +118,7 @@ async def continuo_endpoint(control_type: str, tau: float):
 async def digital_endpoint(control_type: str, sample_time: float, tau: float):
     global current_values
     transfer_function = buildTF([1], [tau, 1])
-    transfer_function = c2d(transfer_function, sample_time, method="tustin")
+    transfer_function = c2d(transfer_function, sample_time, method="zoh")
     print(transfer_function)
 
     controller = get_controller(control_type, transfer_function, digital=True)
@@ -112,6 +129,8 @@ async def digital_endpoint(control_type: str, sample_time: float, tau: float):
     step_response = controller.step_response()
     root_locus = controller.root_locus()
     bode_plot = controller.bode_plot()
+
+    current_values["plot"] = False
 
     return {
         "control_type": control_type,
