@@ -29,6 +29,8 @@ enum State {
 };
 
 State currentState = START;
+String tau = ""; // String para armazenar o valor de tau
+String ts = ""; // String para armazenar o valor de ts
 
 void setup() {
   Serial.begin(9600);
@@ -38,8 +40,6 @@ void loop() {
   char key = keypad.getKey();
   int sensorValue;
   
-  //Serial.println(key);
-
   switch (currentState) {
     case START:
       if (key != NO_KEY) {
@@ -55,9 +55,11 @@ void loop() {
             break;
           case '4':
             currentState = TAU;
+            tau = ""; // Limpa o valor de tau ao iniciar a entrada
             break;
           case '5':
             currentState = TS;
+            ts = ""; // Limpa o valor de ts ao iniciar a entrada
             break;
           case 'A':
             currentState = CONTROL_DIGITAL;
@@ -70,6 +72,7 @@ void loop() {
             break;
           case 'C':
             currentState = CONTROL_TYPE;
+            break;
         }
       }
       break;
@@ -113,22 +116,37 @@ void loop() {
     case TAU:
       if (key != NO_KEY) {
         if (key == '#') {
+          Serial.print("Valor final de tau:");
+          Serial.println(tau);
           currentState = START;
           break;
         }
-        Serial.print("tau:");
-        Serial.println(key);
+        if (key >= '0' && key <= '9') {
+          tau += key;
+          Serial.print("tau:");
+          Serial.println(tau);
+        }
       }
       break;
       
     case TS:
       if (key != NO_KEY) {
         if (key == '#') {
+          Serial.print("Valor final de ts:");
+          Serial.println(ts);
           currentState = START;
           break;
         }
-        Serial.print("ts:");
-        Serial.println(key);
+        if (key >= '0' && key <= '9') {
+          ts += key;
+          Serial.print("ts:");
+          Serial.println(ts);
+        }
+        if (key == '*'){
+          ts += '.';
+          Serial.print("ts:");
+          Serial.println(ts);
+        }
       }
       break;
     
@@ -165,5 +183,6 @@ void loop() {
           currentState = START;
           break;
       }
+      break;
   }
 }
